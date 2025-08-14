@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart ID Masker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg1:#0f172a; /* slate-900 */
+    --bg2:#1e293b; /* slate-800 */
+    --brand:#7c3aed; /* violet-600 */
+    --brand-2:#22d3ee; /* cyan-400 */
+    --accent:#22c55e; /* green-500 */
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(60rem 60rem at 120% -10%, rgba(124,58,237,.25), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 110%, rgba(34,211,238,.2), transparent 60%),
+      linear-gradient(135deg, var(--bg1), var(--bg2));
+    color: #e5e7eb;
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  /* Glow hover */
+  .glow-hover {
+    transition: transform .25s ease, box-shadow .3s ease, border-color .3s ease;
+  }
+  .glow-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(124,58,237,.35);
+    border-color: rgba(124,58,237,.5);
+  }
+
+  /* Fade/slide-in for sections */
+  .fade-in { animation: fadeIn .8s ease forwards; opacity: 0; transform: translateY(8px); }
+  @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+  /* Processing overlay */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 10, 20, .75);
+    display: none; place-items: center; z-index: 50;
+  }
+  .spinner {
+    width: 64px; height: 64px; border-radius: 9999px;
+    border: 6px solid rgba(255,255,255,.2);
+    border-top-color: var(--brand);
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Cinematic reveal on images */
+  .reveal {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+  }
+  .reveal img {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  .reveal.ready img {
+    animation: imgIn .9s ease forwards;
+  }
+  .reveal::before {
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(90deg, rgba(124,58,237,.35), rgba(34,211,238,.35));
+    transform: translateX(-110%);
+  }
+  .reveal.ready::before {
+    animation: wipe .9s ease forwards;
+  }
+  @keyframes wipe { to { transform: translateX(110%); } }
+  @keyframes imgIn { to { opacity:1; transform: scale(1); } }
+
+  /* Drag & Drop area */
+  .dropzone {
+    border: 2px dashed rgba(255,255,255,0.25);
+    transition: border-color .25s ease, background-color .25s ease;
+  }
+  .dropzone.dragover {
+    border-color: var(--brand-2);
+    background: rgba(34,211,238,.08);
+  }
+
+  /* Tiny badge */
+  .badge {
+    background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  }
+</style>
+</head>
+<body class="pb-20">
+  <!-- Processing overlay -->
+  <div id="overlay" class="overlay">
+    <div class="flex flex-col items-center gap-4">
+      <div class="spinner"></div>
+      <p class="text-lg tracking-wide">Masking in progress…</p>
+    </div>
+  </div>
+
+  <header class="max-w-6xl mx-auto px-4 pt-10 pb-6 fade-in">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="badge text-xs font-semibold px-2.5 py-1 rounded-full text-white">Shadow Hunter</span>
+      <span class="text-xs text-slate-300">Blur / Blackout • Image & PDF • Live Preview</span>
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black tracking-tight">
+      Smart <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-300">ID Masker</span>
+    </h1>
+    <p class="text-slate-300 mt-3 max-w-2xl">
+      Instantly redact sensitive info from invoices & docs. Choose your style, upload, and watch the
+      masked preview reveal itself with an awesome animation. 🚀
+    </p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8 items-start">
+    <!-- Upload Card -->
+    <form method="post" enctype="multipart/form-data"
+          class="glass glow-hover rounded-2xl p-6 fade-in"
+          id="uploadForm">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">Upload & Options</h2>
+        <div class="text-xs text-slate-300">PNG • JPG • TIFF • PDF</div>
+      </div>
+
+      <!-- Drag & Drop -->
+      <label for="fileInput" id="dropzone"
+             class="dropzone rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M3 15a4 4 0 014-4h1m8 0h1a4 4 0 010 8H7a4 4 0 01-4-4m12-9l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <div class="text-slate-200"><strong>Click to choose</strong> or drag & drop</div>
+        <div id="fileName" class="text-xs text-slate-400 mt-1">No file selected</div>
+        <input id="fileInput" class="hidden" type="file" name="file" required />
+      </label>
+
+      <div class="mt-6">
+        <label class="block text-sm mb-2">Mask Style</label>
+        <select name="mask_type"
+                class="w-full rounded-lg bg-slate-900/40 border border-white/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400">
+          <option value="blur">Blur (Natural)</option>
+          <option value="black">Blackout (Solid)</option>
+        </select>
+      </div>
+
+      <button type="submit"
+              class="mt-6 w-full rounded-xl bg-gradient-to-r from-violet-600 to-cyan-400 text-slate-900 font-bold py-3 shadow-lg hover:opacity-95 transition">
+        Upload & Mask
+      </button>
+
+      <p class="text-xs text-slate-400 mt-3">
+        We run OCR locally on the server you host. No data is stored beyond your session.
+      </p>
+    </form>
+
+    <!-- Preview Pane -->
+    <section class="fade-in">
+      {% if preview_imgs %}
+        <div class="glass rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xl font-bold">Preview</h2>
+            <a href="{{ download_url }}" download
+               class="rounded-lg bg-emerald-500/90 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow">
+              📥 Download
+            </a>
+          </div>
+
+          <!-- Stacked previews with reveal animation -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-auto pr-1">
+            {% for img in preview_imgs %}
+              <div class="reveal rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                <img src="{{ img }}" alt="Masked Preview" class="block w-full h-auto" onload="readyReveal(this)">
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="glass rounded-2xl p-6 text-slate-300">
+          <h3 class="text-lg font-semibold mb-2">How it works</h3>
+          <ol class="list-decimal ml-5 space-y-1 text-sm">
+            <li>Choose your file (image or PDF).</li>
+            <li>Select blur or blackout style.</li>
+            <li>Hit <em>Upload & Mask</em> and watch the reveal! ✨</li>
+          </ol>
+          <p class="text-xs mt-4 opacity-80">
+            Tip: For PDFs we show each page; use the scroll to review quickly.
+          </p>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-4 mt-10 text-xs text-slate-400">
+    Built for speed & clarity • OCR + Regex + NER • © Your Team
+  </footer>
+
+  <script>
+    // Drag & Drop behavior
+    const drop = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const form = document.getElementById('uploadForm');
+    const overlay = document.getElementById('overlay');
+
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('dragover', e => {
+      e.preventDefault();
+      drop.classList.add('dragover');
+    });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileName.textContent = e.dataTransfer.files[0].name;
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      fileName.textContent = fileInput.files[0] ? fileInput.files[0].name : 'No file selected';
+    });
+
+    // Show processing overlay on submit
+    form.addEventListener('submit', () => {
+      overlay.style.display = 'grid';
+    });
+
+    // Reveal animation hook
+    function readyReveal(imgEl) {
+      const wrap = imgEl.closest('.reveal');
+      if (wrap) wrap.classList.add('ready');
+    }
+  </script>
+</body>
+</html>
