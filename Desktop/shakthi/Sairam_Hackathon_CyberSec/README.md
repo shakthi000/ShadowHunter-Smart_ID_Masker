@@ -1,4 +1,4 @@
-# Invoice Masker Tool
+# Smart ID Masker
 
 ## Install
 pip install -r requirements.txt
